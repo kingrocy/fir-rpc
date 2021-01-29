@@ -5,4 +5,12 @@ package com.yunhui.fir.rpc.exception;
  * @Author : dushaoyun
  */
 public class FirRpcException extends RuntimeException{
+    public FirRpcException(String msg) {
+        super(msg);
+    }
+
+    public FirRpcException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }

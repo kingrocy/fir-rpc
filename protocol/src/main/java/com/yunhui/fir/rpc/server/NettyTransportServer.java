@@ -3,6 +3,7 @@ package com.yunhui.fir.rpc.server;
 import com.yunhui.fir.rpc.common.Codec;
 import com.yunhui.fir.rpc.common.DefaultCodec;
 import com.yunhui.fir.rpc.config.ServerConfig;
+import com.yunhui.fir.rpc.handler.Handler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -14,6 +15,10 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @Date : 2021/1/19 4:06 下午
@@ -30,8 +35,14 @@ public class NettyTransportServer implements Server {
 
     private ServerConfig serverConfig;
 
-    public NettyTransportServer(ServerConfig serverConfig) {
+    private Map<String, Handler> handlerMap;
+
+    public NettyTransportServer(ServerConfig serverConfig, List<Handler> serviceHandlers) {
         this.serverConfig = serverConfig;
+        this.handlerMap = new ConcurrentHashMap<>();
+        for (Handler serviceHandler : serviceHandlers) {
+            handlerMap.put(serviceHandler.getServiceName(), serviceHandler);
+        }
     }
 
     @Override
@@ -53,7 +64,7 @@ public class NettyTransportServer implements Server {
                         log.info("server start...");
                         ch.pipeline().addLast("decoder", new ProtobufVarint32FrameDecoder());
                         ch.pipeline().addLast("encoder", new ProtobufVarint32LengthFieldPrepender());
-                        ch.pipeline().addLast("handler", new ServerChannelHandler());
+                        ch.pipeline().addLast("handler", new ServerChannelHandler(NettyTransportServer.this));
                     }
                 });
         serverBootstrap.childOption(ChannelOption.TCP_NODELAY, true);
@@ -87,5 +98,10 @@ public class NettyTransportServer implements Server {
     @Override
     public Codec getCodec() {
         return new DefaultCodec();
+    }
+
+    @Override
+    public Map<String, Handler> getHandlerMap() {
+        return handlerMap;
     }
 }
